@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    
+<link rel="apple-touch-icon" sizes="180x180" href="icone/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icone/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icone/favicon-16x16.png">
+<link rel="manifest" href="icone/site.webmanifest">
+
+<link rel="stylesheet" href="css/style.css">
+    
+    <title>Carteira+ | Inteligência Financeira</title>
+    <!-- Bibliotecas Externas -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    
+    
+</head>
+<body class="transition-colors duration-500">
+
+    <div id="confetti-container" class="fixed inset-0 pointer-events-none z-[300]"></div>
+
+    <!-- Toast de Notificação -->
+    <div id="custom-toast" class="fixed top-6 left-1/2 -translate-x-1/2 z-[200] hidden">
+        <div class="bg-indigo-600 px-6 py-3 rounded-2xl shadow-2xl font-bold text-sm border border-white/10 animate-bounce text-white">
+            <span id="toast-text">Sincronizando...</span>
+        </div>
+    </div>
+
+    <div id="undo-toast" class="fixed bottom-24 left-1/2 -translate-x-1/2 z-[210] hidden w-[92%] max-w-md">
+        <div class="bg-[#11151f] border border-white/10 rounded-2xl px-4 py-3 shadow-2xl flex items-center justify-between gap-3">
+            <span id="undo-toast-text" class="text-[11px] font-black uppercase tracking-wider text-white opacity-90">Item removido</span>
+            <button onclick="window.undoLastDeletion()" class="px-3 py-2 rounded-xl bg-yellow-500 text-black text-[9px] font-black uppercase tracking-widest active:scale-95">Desfazer</button>
+        </div>
+    </div>
+
+    <!-- CONSULTOR IA OVERLAY -->
+    <div id="ai-chat-overlay" class="fixed inset-0 z-[150] flex flex-col bg-[#08090b]">
+        <header class="p-6 flex items-center justify-between border-b border-white/5">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-indigo-500 rounded-xl"><i data-lucide="sparkles" class="w-5 h-5 text-white"></i></div>
+                <div>
+                    <h3 class="font-black text-base uppercase tracking-tighter text-white">Leo</h3>
+                    <p class="text-[8px] opacity-40 font-bold uppercase tracking-widest text-white">Assistente Virtual</p>
+                </div>
+            </div>
+            <button onclick="window.closeAIChat()" class="p-3 bg-white/5 rounded-2xl active:scale-90 transition-transform">
+                <i data-lucide="x" class="w-6 h-6 text-white"></i>
+            </button>
+        </header>
+        
+        <div id="ai-messages-container" class="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar"></div>
+
+        <div class="p-6 bg-[#0f1115] border-t border-white/5">
+            <div class="flex gap-2">
+                <input type="text" id="ai-user-input" placeholder="Como posso economizar?" class="flex-1 p-4 rounded-2xl bg-white/5 border border-white/10 outline-none font-bold text-base text-white focus:border-indigo-500 transition-colors" />
+                <button onclick="window.sendChatAction()" class="p-4 bg-indigo-600 rounded-2xl active:scale-95 shadow-lg shadow-indigo-500/20">
+                    <i data-lucide="send" class="w-5 h-5 text-white"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex flex-col h-screen">
+        
+        <!-- CABEÇALHO -->
+        <header class="px-6 py-6 flex flex-col gap-4 relative z-10">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <!-- ÁREA DO ÍCONE SUBSTITUÍDA -->
+                    <div class="w-12 h-12 rounded-2xl shadow-lg flex items-center justify-center overflow-hidden object-cover scale-120">
+    <img src="icone.png" 
+         alt="Logo" 
+         class="w-full h-full object-contain">
+</div>
+                    <div>
+                        <h1 class="text-xl font-black italic tracking-tighter leading-none uppercase text-white">
+                            CARTEIRA<span class="text-yellow-500">+</span>
+                        </h1>
+                        <div class="flex items-center gap-1.5 mt-1">
+                            <i data-lucide="cloud-check" id="sync-icon" class="w-3 h-3 text-emerald-500 opacity-30"></i>
+                            <span id="level-display" class="text-[9px] font-black opacity-60 uppercase tracking-widest text-white">Nível 1</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button id="sound-toggle-btn" onclick="window.toggleSound()" type="button" aria-label="Alternar sons" title="Sons ativados" class="p-3 rounded-2xl bg-white/5 border border-white/10 transition-opacity duration-200">
+                        <i data-lucide="bell" class="w-5 h-5 text-white"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                <div id="xp-bar" class="h-full bg-gradient-to-r from-yellow-500 to-orange-500 transition-all duration-500" style="width: 0%"></div>
+            </div>
+        </header>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="flex-1 overflow-y-auto pb-36 px-6 no-scrollbar relative">
+            
+            <!-- ABA INÍCIO -->
+            <section id="home-tab" class="tab-content active space-y-8">
+                <div class="p-4 rounded-[45px] border bg-gradient-to-br from-white/10 to-transparent border-white/5 shadow-2xl flex flex-col items-center text-center relative overflow-hidden">
+                    <div id="coin-canvas-container" class="w-[130px] h-[130px]"></div>
+                    <div class="mt-2 relative z-10">
+                        <p class="text-[10px] font-black uppercase tracking-[0.3em] opacity-30 mb-1">Saldo Atual</p>
+                        <h2 id="balance-display" class="text-4xl font-black tracking-tighter text-emerald-500">R$ 0,00</h2>
+                        <p id="health-warning" class="hidden text-[8px] font-black text-red-500 uppercase mt-2 tracking-widest animate-pulse">Alerta: Gastos elevados</p>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="w-full p-3 rounded-[26px] border border-white/5 bg-white/5 shadow-sm">
+                        <div class="flex items-center gap-2 mb-1 text-white opacity-40"><i data-lucide="arrow-up-circle" class="w-4 h-4 text-emerald-500"></i><span class="text-[9px] font-black uppercase">Ganhos</span></div>
+                        <p id="total-in-display" class="text-base font-black text-emerald-500">R$ 0,00</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="p-3 rounded-[26px] border border-white/5 bg-white/5 shadow-sm">
+                            <div class="flex items-center gap-2 mb-1 text-white opacity-40"><i data-lucide="arrow-down-circle" class="w-4 h-4 text-red-500"></i><span class="text-[9px] font-black uppercase">Gastos</span></div>
+                            <p id="total-out-display" class="text-base font-black text-red-500">R$ 0,00</p>
+                        </div>
+                        <div class="p-3 rounded-[26px] border border-white/5 bg-white/5 shadow-sm">
+                            <div class="flex items-center gap-2 mb-1 text-white opacity-40"><i data-lucide="piggy-bank" class="w-4 h-4 text-indigo-400"></i><span class="text-[9px] font-black uppercase">Cofrinhos</span></div>
+                            <p id="total-saved-display" class="text-base font-black text-indigo-400">R$ 0,00</p>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="window.openAIChat()" class="w-full p-6 rounded-[35px] bg-indigo-500/10 border border-indigo-500/20 flex gap-4 items-center text-left active:scale-[0.98] transition-all group text-white">
+                    <div class="p-3 bg-indigo-500 rounded-2xl shrink-0 group-hover:rotate-12 transition-transform"><i data-lucide="sparkles" class="text-white"></i></div>
+                    <div class="flex-1">
+                        <h4 class="text-[10px] font-black uppercase text-indigo-500 tracking-widest">✨ Pergunte ao Leo, seu assistente financeiro ✨</h4>
+                        <p id="random-tip" class="text-[11px] font-bold opacity-80 leading-tight">Carregando dica...</p>
+                    </div>
+                </button>
+
+                <div>
+                    <div class="flex items-center justify-between mb-5">
+                        <h3 class="font-black uppercase text-base tracking-[0.2em] italic opacity-40 ml-1 text-white">Atividades Recentes</h3>
+                        <button onclick="window.openHistoryModal()" class="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-[9px] font-black uppercase tracking-widest text-white active:scale-95">Historico</button>
+                    </div>
+                    <div id="transactions-list" class="space-y-4">
+                        <p class="text-center py-10 opacity-20 text-base font-black uppercase tracking-widest text-white">Sem registros</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ABA STATUS -->
+            <section id="status-tab" class="tab-content space-y-8">
+                <h3 class="text-3xl font-black italic tracking-tighter text-yellow-500 uppercase">Resumo</h3>
+                <div class="p-8 rounded-[45px] border border-white/10 bg-white/5 shadow-xl">
+                    <div id="chart-container" class="flex items-end justify-between h-64 gap-6 px-4"></div>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="flex justify-between items-center px-1 text-white">
+                        <h4 class="font-black uppercase text-xs tracking-widest opacity-40">Orçamentos</h4>
+                        <button onclick="window.toggleModal('budget-modal')" class="p-2 bg-yellow-500/10 text-yellow-500 rounded-xl flex items-center gap-2 active:scale-95 transition-all text-yellow-500">
+                            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                            <span class="text-[10px] font-black uppercase">Ajustar</span>
+                        </button>
+                    </div>
+                    <div id="budgets-list" class="grid grid-cols-1 gap-4"></div>
+                </div>
+            </section>
+
+            <!-- ABA COFRINHOS -->
+            <section id="piggy-tab" class="tab-content space-y-6">
+                <h3 class="text-3xl font-black italic tracking-tighter text-indigo-500 uppercase">Cofrinhos</h3>
+                <div id="piggies-list" class="space-y-6"></div>
+            </section>
+
+            <!-- ABA PERFIL -->
+            <section id="settings-tab" class="tab-content space-y-8">
+                <h3 class="text-3xl font-black italic tracking-tighter uppercase text-white">Perfil</h3>
+                <div class="p-8 rounded-[40px] border border-white/10 bg-white/5 shadow-md">
+                    <div class="flex items-center gap-4 mb-8 text-white">
+                        <div id="user-avatar" class="w-20 h-20 bg-yellow-500 rounded-full flex items-center justify-center text-black font-black text-3xl shadow-xl border-4 border-black/10 overflow-hidden text-white">U</div>
+                        <div>
+                            <h4 id="user-name-display" class="text-xl font-black">Usuário Local</h4>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span id="auth-status-badge" class="px-2 py-0.5 bg-slate-700 text-white text-[8px] font-black rounded-md">OFFLINE</span>
+                                <span class="text-[10px] font-bold opacity-40">Nuvem Ativada</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="auth-actions" class="space-y-3">
+                        <button onclick="window.handleGoogleLogin()" id="google-login-btn" class="w-full py-5 bg-white text-black font-black rounded-3xl flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl"><i data-lucide="log-in" class="w-5 h-5 text-black"></i> CONECTAR GOOGLE</button>
+                        <button onclick="window.handleLogout()" id="logout-btn" class="w-full py-5 bg-red-500/10 text-red-500 font-black rounded-3xl hidden items-center justify-center gap-3 active:scale-95 border border-red-500/20"><i data-lucide="log-out" class="w-5 h-5 text-red-500"></i> SAIR DA CONTA</button>
+                    </div>
+                    <div class="mt-6 pt-6 border-t border-white/5 text-white">
+                        <p class="text-[8px] font-black opacity-20 uppercase tracking-widest text-center">ID de Sistema: <span id="user-uid-display">...</span></p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- NAVEGAÇÃO INFERIOR -->
+        <nav class="fixed bottom-0 w-full px-8 pt-4 pb-12 border-t bg-[#08090b]/90 border-white/5 backdrop-blur-2xl flex justify-between items-center z-50">
+            <button id="nav-home" onclick="window.switchTab('home')" class="nav-btn flex flex-col items-center gap-1 text-yellow-500">
+                <i data-lucide="home" class="w-6 h-6"></i><span class="text-[7px] font-black uppercase">Início</span>
+            </button>
+            <button id="nav-status" onclick="window.switchTab('status')" class="nav-btn flex flex-col items-center gap-1 opacity-30 text-white">
+                <i data-lucide="bar-chart-3" class="w-6 h-6"></i><span class="text-[7px] font-black uppercase">Status</span>
+            </button>
+            <button onclick="window.toggleModal('add-modal')" class="bg-yellow-500 w-16 h-16 rounded-[24px] flex items-center justify-center -translate-y-10 shadow-2xl active:scale-90 border-[6px] border-[#08090b]">
+                <i data-lucide="plus" class="w-10 h-10 text-black"></i>
+            </button>
+            <button id="nav-piggy" onclick="window.switchTab('piggy')" class="nav-btn flex flex-col items-center gap-1 opacity-30 text-white">
+                <i data-lucide="piggy-bank" class="w-6 h-6"></i><span class="text-[7px] font-black uppercase">Cofrinho</span>
+            </button>
+            <button id="nav-settings" onclick="window.switchTab('settings')" class="nav-btn flex flex-col items-center gap-1 opacity-30 text-white">
+                <i data-lucide="settings" class="w-6 h-6"></i><span class="text-[7px] font-black uppercase">Perfil</span>
+            </button>
+        </nav>
+
+        <!-- MODAIS -->
+        <div id="add-modal" class="fixed inset-0 z-[100] hidden flex items-end justify-center bg-black/95 backdrop-blur-xl">
+            <div class="w-full max-w-lg modal-height px-4 pt-10 pb-8 bg-[#0f1115] border-t border-white/10 flex flex-col relative overflow-hidden text-white">
+                <div class="w-16 h-1.5 bg-white/10 rounded-full mx-auto mb-10 shrink-0"></div>
+                <div class="flex gap-2 p-1.5 bg-black/30 rounded-[25px] mb-8 shrink-0 text-white">
+                    <button onclick="window.setModalType('income')" id="btn-type-income" class="modal-type-btn flex-1 py-4 rounded-[20px] text-[10px] font-black uppercase transition-all opacity-40">Ganho</button>
+                    <button onclick="window.setModalType('expense')" id="btn-type-expense" class="modal-type-btn flex-1 py-4 rounded-[20px] text-[10px] font-black uppercase transition-all bg-yellow-500 text-black shadow-lg">Gasto</button>
+                    <button onclick="window.setModalType('piggy')" id="btn-type-piggy" class="modal-type-btn flex-1 py-4 rounded-[20px] text-[10px] font-black uppercase transition-all opacity-40">Cofrinho</button>
+                </div>
+                <div id="modal-forms-container" class="flex-1 overflow-y-auto no-scrollbar pb-4"></div>
+                <div class="pt-6 space-y-4 shrink-0 border-t border-white/5">
+                    <button id="main-confirm-btn" onclick="window.submitForm()" class="w-full py-6 bg-yellow-500 text-black font-black rounded-[30px] shadow-2xl active:scale-95 transition-transform uppercase text-xs text-black">Confirmar Registro + XP</button>
+                    <button onclick="window.toggleModal('add-modal')" class="w-full py-4 text-red-500 font-black text-sm uppercase tracking-[0.4em] transition-all active:scale-95">SAIR</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="budget-modal" class="fixed inset-0 z-[110] hidden flex items-end justify-center bg-black/95 backdrop-blur-xl">
+            <div class="w-full max-w-lg p-10 rounded-t-[55px] bg-[#0f1115] border-t border-white/10 max-h-[85vh] overflow-y-auto flex flex-col no-scrollbar text-white">
+                <div class="flex justify-between items-center mb-8 shrink-0">
+                    <div><h4 class="text-xl font-black uppercase text-yellow-500 text-white">Definir Limites</h4><p class="text-[10px] font-bold opacity-40 uppercase tracking-widest text-white">Mensal</p></div>
+                    <button onclick="window.toggleModal('budget-modal')" class="p-3 bg-white/5 rounded-2xl"><i data-lucide="x" class="opacity-40 text-white"></i></button>
+                </div>
+                <div id="budget-inputs" class="space-y-4 mb-10"></div>
+                <button onclick="window.toggleModal('budget-modal')" class="w-full py-6 bg-yellow-500 text-black font-black rounded-[30px] shadow-2xl flex items-center justify-center gap-3 uppercase tracking-widest text-xs shrink-0 text-black"><i data-lucide="save" class="w-5 h-5"></i> Salvar Planejamento</button>
+            </div>
+        </div>
+
+        <div id="edit-modal" class="fixed inset-0 z-[120] hidden flex items-end justify-center bg-black/95 backdrop-blur-xl">
+            <div class="w-full max-w-lg modal-height px-4 pt-10 pb-8 bg-[#0f1115] border-t border-white/10 flex flex-col relative overflow-hidden text-white">
+                <div class="w-16 h-1.5 bg-white/10 rounded-full mx-auto mb-8 shrink-0"></div>
+                <div class="flex items-center justify-between mb-6 shrink-0">
+                    <div>
+                        <h4 id="edit-modal-title" class="text-xl font-black uppercase tracking-tighter text-yellow-500">Editar Registro</h4>
+                        <p id="edit-modal-subtitle" class="text-[9px] font-black opacity-40 uppercase tracking-widest">Ajuste os dados</p>
+                    </div>
+                    <button onclick="window.closeEditModal()" class="p-3 bg-white/5 rounded-2xl"><i data-lucide="x" class="opacity-60 text-white"></i></button>
+                </div>
+                <div id="edit-modal-form" class="flex-1 overflow-y-auto no-scrollbar pb-4"></div>
+                <div class="pt-6 space-y-4 shrink-0 border-t border-white/5">
+                    <button onclick="window.submitEditModal()" class="w-full py-6 bg-yellow-500 text-black font-black rounded-[30px] shadow-2xl active:scale-95 transition-transform uppercase text-xs">Salvar Alteracoes</button>
+                    <button onclick="window.closeEditModal()" class="w-full py-4 text-red-500 font-black text-sm uppercase tracking-[0.4em] transition-all active:scale-95">Cancelar</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="delete-modal" class="fixed inset-0 z-[130] hidden flex items-end justify-center bg-black/95 backdrop-blur-xl">
+            <div class="w-full max-w-lg p-8 rounded-t-[45px] bg-[#0f1115] border-t border-white/10 flex flex-col text-white">
+                <div class="w-16 h-1.5 bg-white/10 rounded-full mx-auto mb-7"></div>
+                <h4 id="delete-modal-title" class="text-xl font-black uppercase tracking-tighter text-red-400">Confirmar Remocao</h4>
+                <p id="delete-modal-message" class="mt-3 text-sm font-bold opacity-80 leading-relaxed">Tem certeza que deseja remover este item?</p>
+                <p class="mt-2 text-[10px] font-black uppercase tracking-widest opacity-30">Esta acao nao pode ser desfeita.</p>
+                <div class="mt-8 space-y-3">
+                    <button onclick="window.confirmDeleteModal()" class="w-full py-5 bg-red-500 text-white font-black rounded-[24px] active:scale-95 transition-transform uppercase text-xs">Remover Agora</button>
+                    <button onclick="window.closeDeleteModal()" class="w-full py-4 bg-white/5 border border-white/10 text-white font-black rounded-[24px] active:scale-95 transition-transform uppercase text-xs">Cancelar</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="history-modal" class="fixed inset-0 z-[140] hidden flex items-end justify-center bg-black/95 backdrop-blur-xl">
+            <div class="w-full max-w-lg modal-height px-4 pt-10 pb-8 bg-[#0f1115] border-t border-white/10 flex flex-col relative overflow-hidden text-white">
+                <div class="w-16 h-1.5 bg-white/10 rounded-full mx-auto mb-8 shrink-0"></div>
+                <div class="flex items-center justify-between mb-6 shrink-0">
+                    <div>
+                        <h4 class="text-xl font-black uppercase tracking-tighter text-indigo-400">Historico Completo</h4>
+                        <p class="text-[9px] font-black opacity-40 uppercase tracking-widest">Filtros por tipo, categoria e periodo</p>
+                    </div>
+                    <button onclick="window.closeHistoryModal()" class="p-3 bg-white/5 rounded-2xl"><i data-lucide="x" class="opacity-60 text-white"></i></button>
+                </div>
+                <div class="space-y-3 mb-4 shrink-0">
+                    <div class="grid grid-cols-3 gap-2">
+                        <select id="history-filter-type" onchange="window.renderHistoryList()" class="p-3 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase text-white outline-none">
+                            <option value="all">Todos</option>
+                            <option value="income">Ganhos</option>
+                            <option value="expense">Gastos</option>
+                            <option value="saving">Cofrinho</option>
+                        </select>
+                        <select id="history-filter-category" onchange="window.renderHistoryList()" class="p-3 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase text-white outline-none">
+                            <option value="all">Categorias</option>
+                        </select>
+                        <select id="history-filter-period" onchange="window.renderHistoryList()" class="p-3 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase text-white outline-none">
+                            <option value="all">Periodo</option>
+                            <option value="7">7 dias</option>
+                            <option value="30">30 dias</option>
+                            <option value="90">90 dias</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="history-list" class="flex-1 overflow-y-auto no-scrollbar space-y-3 pb-2"></div>
+                <div class="pt-6 shrink-0 border-t border-white/5">
+                    <button onclick="window.closeHistoryModal()" class="w-full py-4 bg-white/5 border border-white/10 text-white font-black rounded-[24px] active:scale-95 transition-transform uppercase text-xs">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ÁUDIOS -->
+    <audio id="audio-money" src="https://assets.mixkit.co/active_storage/sfx/2017/2017-preview.mp3"></audio>
+    <audio id="audio-celeb" src="https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3"></audio>
+
+
+
+
+    <script type="module" src="js/script.js"></script>
+</body>
+</html>
